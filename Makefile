@@ -5,6 +5,11 @@ build: install-deps
 	@echo "Building Photokiller AppImage..."
 	python build_appimage.py
 
+# Build for Raspberry Pi (ARMv7)
+build-raspberry-pi: install-deps
+	@echo "Building Photokiller AppImage for Raspberry Pi (ARMv7)..."
+	python build_appimage.py --raspberry-pi
+
 # Build using spec file (alternative method)
 build-spec: install-deps
 	@echo "Building using spec file..."
@@ -31,6 +36,7 @@ run:
 help:
 	@echo "Available targets:"
 	@echo "  build      - Build AppImage using build script"
+	@echo "  build-raspberry-pi - Build AppImage for Raspberry Pi (ARMv7)"
 	@echo "  build-spec - Build using PyInstaller spec file"
 	@echo "  clean      - Clean build artifacts"
 	@echo "  install-deps - Install build dependencies"

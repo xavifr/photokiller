@@ -14,6 +14,7 @@ dependencies = [
   "opencv-python>=4.9; platform_machine != 'armv7l'",
   "opencv-python-headless>=4.9; platform_machine == 'armv7l'",
   "typing-extensions>=4.11",
+  "pyinstaller>=6.0",
 ]
 
 [project.scripts]
