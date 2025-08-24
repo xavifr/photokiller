@@ -48,7 +48,6 @@ class AppConfig(BaseModel):
     gpio: GpioConfig = Field(default_factory=GpioConfig)
 
     # Misc
-    working_dir: str = ".photokiller"
     ui_fullscreen: bool = True
 
 

@@ -27,93 +27,114 @@ from pathlib import Path
 
 
 class CountdownWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, skip_preview=False):
         super().__init__(parent)
         
         # Make it cover the entire main window
         self.setGeometry(0, 0, parent.width(), parent.height())
         
-        # Create a dark overlay background
-        self.setStyleSheet("""
-            QWidget {
-                background-color: rgba(0, 0, 0, 200);
-            }
-        """)
+        # Get screen dimensions for responsive design
+        screen = self.screen()
+        screen_width = screen.size().width()
+        screen_height = screen.size().height()
         
-        # Main container for the countdown content
-        self.container = QFrame(self)
-        self.container.setGeometry(0, 0, self.width(), self.height())
-        self.container.setStyleSheet("""
+        # Calculate responsive dimensions
+        is_small_screen = screen_width <= 800 or screen_height <= 600
+        
+        if is_small_screen:
+            # Small screen (800x480, 1024x768, etc.)
+            title_font_size = 28
+            countdown_font_size = 72
+            message_font_size = 16
+            margins = 20
+            spacing = 15
+            countdown_size = 100
+        else:
+            # Large screen (1920x1080, etc.)
+            title_font_size = 36
+            countdown_font_size = 96
+            message_font_size = 20
+            margins = 30
+            spacing = 20
+            countdown_size = 160
+        
+        # Create a proper body container that covers the entire widget
+        self.body_container = QFrame(self)
+        self.body_container.setGeometry(0, 0, self.width(), self.height())
+        self.body_container.setStyleSheet("""
             QFrame {
-                background-color: rgba(0, 0, 0, 240);
+                background-color: rgba(0, 0, 0, 200);
+                border: none;
             }
         """)
         
-        layout = QVBoxLayout(self.container)
-        layout.setContentsMargins(50, 50, 50, 50)
-        layout.setSpacing(30)
+        # Use a simple layout within the body container
+        layout = QVBoxLayout(self.body_container)
+        layout.setContentsMargins(margins, margins, margins, margins)
+        layout.setSpacing(spacing)
         
-        # Title
+        # Title - smaller and less prominent
         title = QLabel("Get Ready!")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("""
-            QLabel {
+        title.setStyleSheet(f"""
+            QLabel {{
                 color: white;
-                font-size: 48px;
+                font-size: {title_font_size}px;
                 font-weight: bold;
                 font-family: Arial, sans-serif;
-                margin-bottom: 20px;
-            }
+                margin-bottom: {spacing}px;
+            }}
         """)
         layout.addWidget(title)
         
-        # Camera preview area
-        self.preview_label = QLabel("Camera preview will appear here")
-        self.preview_label.setAlignment(Qt.AlignCenter)
-        self.preview_label.setStyleSheet("""
-            QLabel {
-                background-color: #1a1a1a;
-                border: 4px solid #ffffff;
-                border-radius: 15px;
-                padding: 20px;
-                color: white;
-                font-size: 18px;
-            }
-        """)
-        self.preview_label.setMinimumSize(800, 600)
-        layout.addWidget(self.preview_label, 1)  # Give it stretch priority
+        # Camera preview area - only show if preview is enabled
+        if not skip_preview:
+            self.preview_label = QLabel("Camera preview will appear here")
+            self.preview_label.setAlignment(Qt.AlignCenter)
+            self.preview_label.setStyleSheet("""
+                QLabel {
+                    background-color: rgba(0, 0, 0, 100);
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    border-radius: 10px;
+                    color: white;
+                    font-size: 16px;
+                }
+            """)
+            layout.addWidget(self.preview_label, 1)  # Give it stretch priority
+        else:
+            self.preview_label = None
         
-        # Countdown display
+        # Countdown display - simplified
         countdown_layout = QHBoxLayout()
-        countdown_layout.setSpacing(20)
+        countdown_layout.setSpacing(spacing)
         
         # Countdown number
         self.countdown_label = QLabel("3")
         self.countdown_label.setAlignment(Qt.AlignCenter)
-        self.countdown_label.setStyleSheet("""
-            QLabel {
+        self.countdown_label.setStyleSheet(f"""
+            QLabel {{
                 color: white;
-                font-size: 120px;
+                font-size: {countdown_font_size}px;
                 font-weight: bold;
                 font-family: Arial, sans-serif;
-                background-color: rgba(255, 255, 255, 20);
-                border-radius: 60px;
-                padding: 20px;
-                min-width: 200px;
-                min-height: 200px;
-            }
+                background-color: rgba(255, 255, 255, 0.1);
+                border-radius: {countdown_size//2}px;
+                padding: 15px;
+                min-width: {countdown_size}px;
+                min-height: {countdown_size}px;
+            }}
         """)
         
         # Countdown message
         self.message_label = QLabel("Get ready!")
         self.message_label.setAlignment(Qt.AlignCenter)
-        self.message_label.setStyleSheet("""
-            QLabel {
+        self.message_label.setStyleSheet(f"""
+            QLabel {{
                 color: white;
-                font-size: 24px;
+                font-size: {message_font_size}px;
                 font-weight: bold;
                 font-family: Arial, sans-serif;
-            }
+            }}
         """)
         
         countdown_layout.addWidget(self.countdown_label, alignment=Qt.AlignCenter)
@@ -123,203 +144,295 @@ class CountdownWidget(QWidget):
         self.hide()
     
     def set_preview_frame(self, frame):
-        """Render preview with high-contrast background and a non-destructive outline."""
-        if frame is None:
-            self.preview_label.clear()
-            self.preview_label.setText("Camera preview will appear here")
-            return
-        
-        # Create a canvas equal to label size
-        label_size = self.preview_label.size()
-        canvas = QPixmap(label_size)
-        canvas.fill(QColor("#1a1a1a"))  # dark background
-        
-        # Compute scaled image size with margin
-        margin = 16
-        target_w = max(1, label_size.width() - margin * 2)
-        target_h = max(1, label_size.height() - margin * 2)
-        scaled = QPixmap.fromImage(frame).scaled(
-            target_w,
-            target_h,
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation,
-        )
-        
-        # Center position
-        x = (label_size.width() - scaled.width()) // 2
-        y = (label_size.height() - scaled.height()) // 2
-        
-        painter = QPainter(canvas)
-        painter.drawPixmap(x, y, scaled)
-        # Draw a subtle outline around the drawn image (preview-only)
-        pen = QPen(QColor("#FFFFFF"))
-        pen.setWidth(2)
-        painter.setPen(pen)
-        painter.drawRect(x, y, scaled.width() - 1, scaled.height() - 1)
-        painter.end()
-        
-        self.preview_label.setPixmap(canvas)
+        """Set the preview frame if preview is enabled"""
+        if self.preview_label is not None:
+            # Convert QImage to QPixmap and scale to fit the preview label
+            pixmap = QPixmap.fromImage(frame)
+            if not pixmap.isNull():
+                # Scale the pixmap to fit the preview label while maintaining aspect ratio
+                scaled_pixmap = pixmap.scaled(
+                    self.preview_label.size(),
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation
+                )
+                self.preview_label.setPixmap(scaled_pixmap)
     
     def resizeEvent(self, event) -> None:  # type: ignore[override]
         """Handle resize to cover full window"""
         super().resizeEvent(event)
         # Resize to cover the entire parent window
         self.setGeometry(0, 0, self.parent().width(), self.parent().height())
-        # Make container cover full countdown widget
-        self.container.setGeometry(0, 0, self.width(), self.height())
+        # Make body container cover full countdown widget
+        if hasattr(self, 'body_container'):
+            self.body_container.setGeometry(0, 0, self.width(), self.height())
 
 
 class ReviewWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Make it cover the entire main window (including title bar)
+        # Make it cover the entire main window
         self.setGeometry(0, 0, parent.width(), parent.height())
         
-        # Create a dark overlay background that covers everything
-        self.setStyleSheet("""
-            QWidget {
-                background-color: rgba(0, 0, 0, 200);
-            }
-        """)
+        # Get screen dimensions for responsive design
+        screen = self.screen()
+        screen_width = screen.size().width()
+        screen_height = screen.size().height()
         
-        # Main container for the review content - now fullscreen
-        self.container = QFrame(self)
-        self.container.setGeometry(0, 0, self.width(), self.height())
-        self.container.setStyleSheet("""
+        # Calculate responsive dimensions
+        is_small_screen = screen_width <= 800 or screen_height <= 600
+        
+        if is_small_screen:
+            # Small screen (800x480, 1024x768, etc.)
+            title_font_size = 24
+            button_font_size = 14
+            button_width = 120
+            button_height = 40
+            panel_width = 280  # Increased to ensure title fits + margins + padding
+            margins = 20
+            spacing = 15
+        else:
+            # Large screen (1920x1080, etc.)
+            title_font_size = 32
+            button_font_size = 18
+            button_width = 160
+            button_height = 50
+            panel_width = 360  # Increased to ensure title fits + margins + padding
+            margins = 30
+            spacing = 20
+        
+        # Store panel width for consistent reference
+        self.panel_width = panel_width
+        
+        # Create a proper body container that covers the entire widget
+        self.body_container = QFrame(self)
+        self.body_container.setGeometry(0, 0, self.width(), self.height())
+        self.body_container.setStyleSheet("""
             QFrame {
-                background-color: rgba(0, 0, 0, 240);
+                background-color: rgba(0, 0, 0, 200);
+                border: none;
             }
         """)
         
-        layout = QVBoxLayout(self.container)
-        layout.setContentsMargins(50, 50, 50, 50)
-        layout.setSpacing(30)
+        # Use horizontal layout: controls on left, image on right
+        layout = QHBoxLayout(self.body_container)
+        layout.setContentsMargins(margins, margins, margins, margins)
+        layout.setSpacing(margins)
+        
+        # Left side controls container
+        controls_container = QFrame()
+        controls_container.setFixedWidth(panel_width)
+        controls_container.setStyleSheet("""
+            QFrame {
+                background-color: rgba(0, 0, 0, 200);
+                border-radius: 15px;
+                padding: 15px;
+            }
+        """)
+        
+        controls_layout = QVBoxLayout(controls_container)
+        controls_layout.setSpacing(spacing)
+        controls_layout.setContentsMargins(15, 15, 15, 15)  # Reduced margins for more content space
         
         # Title
-        title = QLabel("Review Your Photos")
+        title = QLabel("Review")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("""
-            QLabel {
+        title.setMinimumWidth(button_width + 20)  # Ensure title has enough width
+        title.setStyleSheet(f"""
+            QLabel {{
                 color: white;
-                font-size: 48px;
+                font-size: {title_font_size}px;
                 font-weight: bold;
                 font-family: Arial, sans-serif;
-                margin-bottom: 20px;
-            }
+                margin-bottom: {spacing}px;
+            }}
         """)
-        layout.addWidget(title)
+        controls_layout.addWidget(title)
         
-        # Photo display - now larger and more prominent
-        self.photo_label = QLabel()
-        self.photo_label.setAlignment(Qt.AlignCenter)
-        self.photo_label.setStyleSheet("""
-            QLabel {
-                background-color: #1a1a1a;
-                border: 4px solid #ffffff;
-                border-radius: 15px;
-                padding: 20px;
-            }
-        """)
-        self.photo_label.setMinimumSize(800, 600)
-        layout.addWidget(self.photo_label, 1)  # Give it stretch priority
+        # Add some spacing
+        controls_layout.addSpacing(spacing)
         
-        # Button container
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(40)
-        
-        # Discard button - larger for fullscreen
-        self.discard_btn = QPushButton("DISCARD")
-        self.discard_btn.setFixedSize(200, 70)
-        self.discard_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #95a5a6, stop:1 #7f8c8d);
-                color: white;
-                border: none;
-                border-radius: 35px;
-                font-size: 20px;
-                font-weight: bold;
-                font-family: Arial, sans-serif;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #bdc3c7, stop:1 #95a5a6);
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #7f8c8d, stop:1 #6c7b7d);
-            }
-        """)
-        
-        # Print button - larger for fullscreen
+        # Print button (primary action)
         self.print_btn = QPushButton("PRINT")
-        self.print_btn.setFixedSize(200, 70)
-        self.print_btn.setStyleSheet("""
-            QPushButton {
+        self.print_btn.setFixedSize(button_width, button_height)
+        self.print_btn.setStyleSheet(f"""
+            QPushButton {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #27ae60, stop:1 #229954);
                 color: white;
                 border: none;
-                border-radius: 35px;
-                font-size: 20px;
+                border-radius: {button_height//2}px;
+                font-size: {button_font_size}px;
                 font-weight: bold;
                 font-family: Arial, sans-serif;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #2ecc71, stop:1 #27ae60);
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #229954, stop:1 #1e8449);
+            }}
+        """)
+        controls_layout.addWidget(self.print_btn, alignment=Qt.AlignCenter)
+        
+        # Add spacing between buttons
+        controls_layout.addSpacing(spacing)
+        
+        # Discard button (secondary action)
+        self.discard_btn = QPushButton("DISCARD")
+        self.discard_btn.setFixedSize(button_width, button_height)
+        self.discard_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #95a5a6, stop:1 #7f8c8d);
+                color: white;
+                border: none;
+                border-radius: {button_height//2}px;
+                font-size: {button_font_size}px;
+                font-weight: bold;
+                font-family: Arial, sans-serif;
+            }}
+            QPushButton:hover {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #bdc3c7, stop:1 #95a5a6);
+            }}
+            QPushButton:pressed {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #7f8c8d, stop:1 #6c7b7d);
+            }}
+        """)
+        controls_layout.addWidget(self.discard_btn, alignment=Qt.AlignCenter)
+        
+        # Add the controls container to the left side
+        layout.addWidget(controls_container)
+        
+        # Photo display - takes remaining space (full height)
+        self.photo_label = QLabel()
+        self.photo_label.setAlignment(Qt.AlignCenter)
+        self.photo_label.setStyleSheet("""
+            QLabel {
+                background-color: rgba(0, 0, 0, 100);
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                border-radius: 10px;
+                padding: 10px;
             }
         """)
-        
-        button_layout.addWidget(self.discard_btn, alignment=Qt.AlignCenter)
-        button_layout.addWidget(self.print_btn, alignment=Qt.AlignCenter)
-        layout.addLayout(button_layout)
+        layout.addWidget(self.photo_label, 1)  # Give it stretch priority
         
         self.hide()
+        
+        # Store the current photo path for refresh purposes
+        self._current_photo_path = None
+    
+    def showEvent(self, event) -> None:  # type: ignore[override]
+        """Handle show event to ensure photo is properly sized"""
+        super().showEvent(event)
+        # Refresh the photo when the widget becomes visible
+        if self._current_photo_path:
+            QTimer.singleShot(50, lambda: self.set_photo(self._current_photo_path))
+        
+        # Debug info about panel dimensions
+        if hasattr(self, 'body_container'):
+            panel_width = 280 if self.width() <= 800 else 360
+            print(f"Review panel width: {panel_width}px, total width: {self.width()}px")
     
     def resizeEvent(self, event) -> None:  # type: ignore[override]
         """Handle resize to cover full window"""
         super().resizeEvent(event)
         # Resize to cover the entire parent window
         self.setGeometry(0, 0, self.parent().width(), self.parent().height())
-        # Make container cover full review widget
-        self.container.setGeometry(0, 0, self.width(), self.height())
-    
+        # Make body container cover full review widget
+        if hasattr(self, 'body_container'):
+            self.body_container.setGeometry(0, 0, self.width(), self.height())
+        # Update photo label size
+        self._update_photo_label_size()
+
     def set_photo(self, photo_path: str) -> None:
-        """Set the photo to display with dark background and outline for clear borders."""
+        """Set the photo to display in the review widget, resized to fit the UI."""
+        # Store the photo path for refresh purposes
+        self._current_photo_path = photo_path
+        
         pixmap = QPixmap(photo_path)
         if pixmap.isNull():
             self.photo_label.setText("Failed to load photo")
             return
 
-        label_size = self.photo_label.size()
-        canvas = QPixmap(label_size)
-        canvas.fill(QColor("#1a1a1a"))
-
-        # Fit image within label with margins
-        margin = 16
-        target_w = max(1, label_size.width() - margin * 2)
-        target_h = max(1, label_size.height() - margin * 2)
-        scaled = pixmap.scaled(target_w, target_h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-
-        x = (label_size.width() - scaled.width()) // 2
-        y = (label_size.height() - scaled.height()) // 2
-
-        painter = QPainter(canvas)
-        painter.drawPixmap(x, y, scaled)
-        # Draw an outline strictly for on-screen clarity; does not alter file
-        pen = QPen(QColor("#FFFFFF"))
-        pen.setWidth(2)
-        painter.setPen(pen)
-        painter.drawRect(x, y, scaled.width() - 1, scaled.height() - 1)
-        painter.end()
-
-        self.photo_label.setPixmap(canvas)
+        # Calculate the available space for the photo
+        # Account for the left panel width and margins
+        total_width = self.width()
+        total_height = self.height()
+        
+        # Get the panel width and margins
+        if hasattr(self, 'body_container'):
+            margins = self.body_container.layout().contentsMargins()
+            # Use the stored panel width from __init__
+            panel_width = self.panel_width
+            
+            # Calculate available space for photo
+            available_width = total_width - panel_width - margins.left() - margins.right()
+            available_height = total_height - margins.top() - margins.bottom()
+            
+            # Account for photo label's own padding and border
+            photo_padding = 20  # 10px padding on each side
+            photo_border = 4    # 2px border on each side
+            available_width -= (photo_padding + photo_border)
+            available_height -= (photo_padding + photo_border)
+        else:
+            # Fallback if body_container not available
+            available_width = total_width - 300  # Conservative estimate
+            available_height = total_height - 60  # Conservative estimate
+        
+        # Ensure minimum sizes
+        available_width = max(100, available_width)
+        available_height = max(100, available_height)
+        
+        # Debug info
+        print(f"Photo sizing: total={total_width}x{total_height}, panel={panel_width}, available={available_width}x{available_height}")
+        print(f"Margins: left={margins.left()}, right={margins.right()}, top={margins.top()}, bottom={margins.bottom()}")
+        print(f"Photo label size: {self.photo_label.size()}")
+        
+        # Scale the image to fit the available space while maintaining aspect ratio
+        scaled_pixmap = pixmap.scaled(
+            available_width, 
+            available_height, 
+            Qt.KeepAspectRatio, 
+            Qt.SmoothTransformation
+        )
+        
+        # Debug info after scaling
+        print(f"Scaled pixmap size: {scaled_pixmap.size()}")
+        
+        # Set the scaled image
+        self.photo_label.setPixmap(scaled_pixmap)
+    
+    def _update_photo_label_size(self) -> None:
+        """Update the photo label size to match available space"""
+        if hasattr(self, 'body_container') and hasattr(self, 'panel_width'):
+            margins = self.body_container.layout().contentsMargins()
+            total_width = self.width()
+            total_height = self.height()
+            
+            # Calculate available space for photo
+            available_width = total_width - self.panel_width - margins.left() - margins.right()
+            available_height = total_height - margins.top() - margins.bottom()
+            
+            # Account for photo label's own padding and border
+            photo_padding = 20  # 10px padding on each side
+            photo_border = 4    # 2px border on each side
+            available_width -= (photo_padding + photo_border)
+            available_height -= (photo_padding + photo_border)
+            
+            # Set minimum size for photo label
+            self.photo_label.setMinimumSize(available_width, available_height)
+            print(f"Updated photo label size: {available_width}x{available_height}")
+    
+    def refresh_photo(self) -> None:
+        """Refresh the photo display after resize events."""
+        if self._current_photo_path:
+            # Small delay to ensure the widget has been resized
+            QTimer.singleShot(100, lambda: self.set_photo(self._current_photo_path))
     
     def set_error_message(self, message: str) -> None:
         """Set the error message to display in the review widget"""
@@ -346,6 +459,38 @@ class MainWindow(QMainWindow):
         # Set window to fullscreen by default
         self.setWindowState(Qt.WindowFullScreen)
         
+        # Get screen dimensions for responsive design
+        screen = self.screen()
+        screen_width = screen.size().width()
+        screen_height = screen.size().height()
+        
+        # Calculate responsive dimensions
+        is_small_screen = screen_width <= 800 or screen_height <= 600
+        
+        # Responsive sizing
+        if is_small_screen:
+            # Small screen (800x480, 1024x768, etc.)
+            title_font_size = 32
+            subtitle_font_size = 14
+            button_font_size = 16
+            button_width = min(300, screen_width - 100)
+            button_height = 60
+            margins = 30
+            spacing = 20
+            title_margin = 15
+            subtitle_margin = 25
+        else:
+            # Large screen (1920x1080, etc.)
+            title_font_size = 48
+            subtitle_font_size = 18
+            button_font_size = 20
+            button_width = 400
+            button_height = 80
+            margins = 50
+            spacing = 30
+            title_margin = 20
+            subtitle_margin = 40
+        
         # Set window styling
         self.setStyleSheet("""
             QMainWindow {
@@ -356,33 +501,33 @@ class MainWindow(QMainWindow):
         
         central = QWidget()
         layout = QVBoxLayout(central)
-        layout.setSpacing(30)
-        layout.setContentsMargins(50, 50, 50, 50)
+        layout.setSpacing(spacing)
+        layout.setContentsMargins(margins, margins, margins, margins)
         
         # Title
         title = QLabel("PHOTOKILLER")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("""
-            QLabel {
+        title.setStyleSheet(f"""
+            QLabel {{
                 color: white;
-                font-size: 48px;
+                font-size: {title_font_size}px;
                 font-weight: bold;
                 font-family: Arial, sans-serif;
-                margin-bottom: 20px;
-            }
+                margin-bottom: {title_margin}px;
+            }}
         """)
         layout.addWidget(title)
         
         # Subtitle
         subtitle = QLabel("Professional Photobooth")
         subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet("""
-            QLabel {
+        subtitle.setStyleSheet(f"""
+            QLabel {{
                 color: #ecf0f1;
-                font-size: 18px;
+                font-size: {subtitle_font_size}px;
                 font-family: Arial, sans-serif;
-                margin-bottom: 40px;
-            }
+                margin-bottom: {subtitle_margin}px;
+            }}
         """)
         layout.addWidget(subtitle)
         
@@ -396,66 +541,97 @@ class MainWindow(QMainWindow):
             }
         """)
         button_layout = QVBoxLayout(button_container)
-        button_layout.setSpacing(20)
+        button_layout.setSpacing(spacing)
         
         # Take 1 Photo button
         self.take_one_btn = QPushButton("TAKE 1 PHOTO")
-        self.take_one_btn.setFixedSize(400, 80)
-        self.take_one_btn.setStyleSheet("""
-            QPushButton {
+        self.take_one_btn.setFixedSize(button_width, button_height)
+        self.take_one_btn.setStyleSheet(f"""
+            QPushButton {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #3498db, stop:1 #2980b9);
                 color: white;
                 border: none;
-                border-radius: 40px;
-                font-size: 20px;
+                border-radius: {button_height//2}px;
+                font-size: {button_font_size}px;
                 font-weight: bold;
                 font-family: Arial, sans-serif;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #5dade2, stop:1 #3498db);
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #2980b9, stop:1 #1f618d);
-            }
-            QPushButton:disabled {
+            }}
+            QPushButton:disabled {{
                 background: #95a5a6;
                 color: #ecf0f1;
-            }
+            }}
         """)
         
         # Take 3 Photos button
         self.take_three_btn = QPushButton("TAKE 3 PHOTOS")
-        self.take_three_btn.setFixedSize(400, 80)
-        self.take_three_btn.setStyleSheet("""
-            QPushButton {
+        self.take_three_btn.setFixedSize(button_width, button_height)
+        self.take_three_btn.setStyleSheet(f"""
+            QPushButton {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #e74c3c, stop:1 #c0392b);
                 color: white;
                 border: none;
-                border-radius: 40px;
-                font-size: 20px;
+                border-radius: {button_height//2}px;
+                font-size: {button_font_size}px;
                 font-weight: bold;
                 font-family: Arial, sans-serif;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #ec7063, stop:1 #e74c3c);
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #c0392b, stop:1 #a93226);
-            }
-            QPushButton:disabled {
+            }}
+            QPushButton:disabled {{
                 background: #95a5a6;
                 color: #ecf0f1;
-            }
+            }}
         """)
         
         button_layout.addWidget(self.take_one_btn, alignment=Qt.AlignCenter)
         button_layout.addWidget(self.take_three_btn, alignment=Qt.AlignCenter)
+        
+        # Re-print button (only enabled when there's a last photo)
+        self.reprint_btn = QPushButton("RE-PRINT LAST PHOTO")
+        self.reprint_btn.setFixedSize(button_width, button_height)
+        self.reprint_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #f39c12, stop:1 #e67e22);
+                color: white;
+                border: none;
+                border-radius: {button_height//2}px;
+                font-size: {button_font_size}px;
+                font-weight: bold;
+                font-family: Arial, sans-serif;
+            }}
+            QPushButton:hover {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #f7dc6f, stop:1 #f39c12);
+            }}
+            QPushButton:pressed {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #e67e22, stop:1 #d35400);
+            }}
+            QPushButton:disabled {{
+                background: #95a5a6;
+                color: #ecf0f1;
+            }}
+        """)
+        self.reprint_btn.setEnabled(False)  # Initially disabled
+        button_layout.addWidget(self.reprint_btn, alignment=Qt.AlignCenter)
+        
         layout.addWidget(button_container)
         
         # Camera thread for preview (only if preview is enabled)
@@ -467,7 +643,7 @@ class MainWindow(QMainWindow):
             self.camera_thread.start()
         
         # Countdown widget
-        self.countdown = CountdownWidget(self)
+        self.countdown = CountdownWidget(self, skip_preview=config.camera.skip_preview)
         self.countdown.move(
             (self.width() - self.countdown.width()) // 2,
             (self.height() - self.countdown.height()) // 2
@@ -504,6 +680,9 @@ class MainWindow(QMainWindow):
         self.take_one_btn.clicked.connect(lambda: self._start_session(1))
         self.take_three_btn.clicked.connect(lambda: self._start_session(3))
         
+        # Connect re-print button
+        self.reprint_btn.clicked.connect(self._reprint_last_photo)
+        
         # Connect review buttons
         self.review.discard_btn.clicked.connect(self._discard_photo)
         self.review.print_btn.clicked.connect(self._print_photo)
@@ -535,6 +714,7 @@ class MainWindow(QMainWindow):
         # Disable buttons during countdown
         self.take_one_btn.setEnabled(False)
         self.take_three_btn.setEnabled(False)
+        self.reprint_btn.setEnabled(False)  # Disable re-print during new capture session
         
         # Store session info for multi-capture
         self._pending_session = num_shots
@@ -543,6 +723,9 @@ class MainWindow(QMainWindow):
         # Create one session directory to hold all shots and the composed print
         self._session_dir = make_session_dir(self.config.session.save_dir)
         
+        # Clear previous photo reference when starting new session
+        self.last_composed_photo = None
+
         self.countdown_timer.start(1000)  # Update every second
         self._update_countdown()
 
@@ -634,11 +817,22 @@ class MainWindow(QMainWindow):
 
     def _start_shot_countdown(self) -> None:
         """Start countdown for the next shot in a multi-capture session"""
+        # Ensure countdown widget is visible
+        self.countdown.show()
+        self.countdown.raise_()
+        
+        # Show a brief transition message
+        self.countdown.message_label.setText(f"Moving to shot {self._current_shot + 1}...")
+        self.countdown.countdown_label.setText("→")
+        
+        # Brief pause to show the transition
+        QTimer.singleShot(1500, self._start_next_shot_countdown)
+    
+    def _start_next_shot_countdown(self) -> None:
+        """Start the actual countdown for the next shot"""
         self.countdown_seconds = int(self.config.session.capture_delay)
         self.countdown.countdown_label.setText(str(self.countdown_seconds))
         self.countdown.message_label.setText(f"Get ready for shot {self._current_shot + 1}!")
-        self.countdown.show()
-        self.countdown.raise_()
         
         self.countdown_timer.start(1000)  # Update every second
 
@@ -694,6 +888,12 @@ class MainWindow(QMainWindow):
         # Re-enable main buttons
         self.take_one_btn.setEnabled(True)
         self.take_three_btn.setEnabled(True)
+        
+        # Enable re-print button since we have a photo to review
+        self.reprint_btn.setEnabled(True)
+        
+        # Inform user that re-printing is available
+        self.statusBar().showMessage("Photo ready for printing or re-printing", 5000)
 
     def _show_error_review(self, error_message: str) -> None:
         """Show review screen with error message instead of photo"""
@@ -705,6 +905,9 @@ class MainWindow(QMainWindow):
         # Re-enable main buttons
         self.take_one_btn.setEnabled(True)
         self.take_three_btn.setEnabled(True)
+        
+        # Disable re-print button since there's no valid photo to re-print
+        self.reprint_btn.setEnabled(False)
 
     def _discard_photo(self) -> None:
         """Discard the photo and return to main screen"""
@@ -715,12 +918,25 @@ class MainWindow(QMainWindow):
         self.countdown.hide()
         
         self.statusBar().showMessage("Photo discarded (kept on disk)", 3000)
-        # Do NOT delete composed image; just clear reference
+        # Keep the photo reference for re-printing - don't clear it
+        # self.last_composed_photo = None
+        
+        # Re-print button remains enabled since photo is still available for re-printing
+
+    def _clear_photo_session(self) -> None:
+        """Clear the current photo session and disable re-print button"""
         self.last_composed_photo = None
+        self.reprint_btn.setEnabled(False)
+        self.statusBar().showMessage("Photo session cleared", 3000)
 
     def _print_photo(self) -> None:
         """Print the photo"""
         if not self.last_composed_photo:
+            self.statusBar().showMessage("No photo to print", 3000)
+            return
+
+        if not self.config.printing.enabled:
+            self.statusBar().showMessage("Printing is disabled in config", 3000)
             return
             
         try:
@@ -735,25 +951,85 @@ class MainWindow(QMainWindow):
         # Hide review and countdown, return to main screen
         self.review.hide()
         self.countdown.hide()
-        self.last_composed_photo = None
+        # Keep the photo reference for re-printing - don't set to None
+        # self.last_composed_photo = None
+        
+        # Re-print button remains enabled since photo is still available
+
+    def _reprint_last_photo(self) -> None:
+        """Re-print the last captured photo"""
+        if not self.last_composed_photo:
+            self.statusBar().showMessage("No photo to re-print", 3000)
+            return
+
+        if not self.config.printing.enabled:
+            self.statusBar().showMessage("Printing is disabled in config", 3000)
+            return
+            
+        try:
+            self.statusBar().showMessage(f"Re-printing photo: {Path(self.last_composed_photo).name}...")
+            print_file_cups(self.last_composed_photo, self.config.printing.printer_name, self.config.printing.copies)
+            self.statusBar().showMessage("Photo re-printed successfully!", 5000)
+            print(f"Re-printed: {self.last_composed_photo}")
+        except Exception as exc:
+            print(f"Re-print error: {exc}")
+            self.statusBar().showMessage(f"Re-print error: {exc}", 7000)
 
     def _start_session(self, num_shots: int) -> None:
         """Start photo session with countdown"""
         self._start_countdown(num_shots)
 
     def resizeEvent(self, event) -> None:  # type: ignore[override]
-        """Handle window resize to keep widgets centered"""
+        """Handle window resize to keep widgets centered and update responsive sizing"""
         super().resizeEvent(event)
+        
+        # Update responsive sizing for all widgets
+        self._update_responsive_sizing()
+        
         if hasattr(self, 'countdown'):
             self.countdown.move(
                 (self.width() - self.countdown.width()) // 2,
                 (self.height() - self.countdown.height()) // 2
             )
+            # Update countdown body container
+            if hasattr(self.countdown, 'body_container'):
+                self.countdown.body_container.setGeometry(0, 0, self.countdown.width(), self.countdown.height())
         if hasattr(self, 'review'):
             # Update review widget to cover full window
             self.review.setGeometry(0, 0, self.width(), self.height())
-            # Make container cover full review widget
-            self.review.container.setGeometry(0, 0, self.review.width(), self.review.height())
+            # Make body container cover full review widget
+            if hasattr(self.review, 'body_container'):
+                self.review.body_container.setGeometry(0, 0, self.review.width(), self.review.height())
+            # Refresh the photo display to fit the new size
+            if hasattr(self.review, 'refresh_photo'):
+                self.review.refresh_photo()
+
+    def _update_responsive_sizing(self) -> None:
+        """Update sizing for all widgets based on current screen dimensions"""
+        # Get current screen dimensions
+        screen = self.screen()
+        screen_width = screen.size().width()
+        screen_height = screen.size().height()
+        
+        # Calculate responsive dimensions
+        is_small_screen = screen_width <= 800 or screen_height <= 600
+        
+        if is_small_screen:
+            # Small screen (800x480, 1024x768, etc.)
+            button_width = min(300, screen_width - 100)
+            button_height = 60
+        else:
+            # Large screen (1920x1080, etc.)
+            button_width = 400
+            button_height = 80
+        
+        # Update button sizes if they exist
+        if hasattr(self, 'take_one_btn'):
+            self.take_one_btn.setFixedSize(button_width, button_height)
+        if hasattr(self, 'take_three_btn'):
+            self.take_three_btn.setFixedSize(button_width, button_height)
+        if hasattr(self, 'reprint_btn'):
+            self.reprint_btn.setFixedSize(button_width, button_height)
 
     def closeEvent(self, event) -> None:  # type: ignore[override]
         if self.camera_thread:
@@ -776,6 +1052,11 @@ class MainWindow(QMainWindow):
             else:
                 self.showFullScreen()
             return
+        elif event.key() == Qt.Key_D and event.modifiers() == Qt.ControlModifier:
+            # Clear photo session (Ctrl+D)
+            self._clear_photo_session()
+            return
         super().keyPressEvent(event)
+
 
 

@@ -13,7 +13,6 @@ from .ui.main_window import MainWindow
 
 def ensure_directories(config: AppConfig) -> None:
     Path(config.session.save_dir).mkdir(parents=True, exist_ok=True)
-    Path(config.working_dir).mkdir(parents=True, exist_ok=True)
 
 
 def main(argv: Optional[list[str]] = None) -> int:

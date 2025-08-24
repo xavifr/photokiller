@@ -249,3 +249,4 @@ photokiller.AppImage
 .env.development
 .env.test
 .env.production
+Dockerfile.arm

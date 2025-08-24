@@ -5,7 +5,7 @@ from typing import Optional
 
 import cv2
 from PySide6.QtGui import QImage
-
+import time
 
 def capture_webcam_photos(
     device_index: int,
