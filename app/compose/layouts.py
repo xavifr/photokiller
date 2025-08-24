@@ -28,8 +28,7 @@ def compose_10x15_strip(images: Iterable[Path], output_path: Path, base_mask_pat
             print(f"Background mask applied successfully: {background_mask_path}")
         except Exception as e:
             print(f"Warning: Could not apply background mask {background_mask_path}: {e}")
-    else:
-        print(f"No background mask provided or file doesn't exist: {background_mask_path}")
+
 
     imgs = [Image.open(p) for p in images]
 

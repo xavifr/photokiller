@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Tuple, Optional, Literal
+from typing import Literal
 
 from .webcam import capture_webcam_photos
 from .dslr import capture_dslr_photos
@@ -11,33 +11,33 @@ def capture_photos(
     camera_mode: Literal["webcam", "dslr"],
     device_index: int,
     resolution: Tuple[int, int],
-    num_photos: int,
     output_dir: Path,
-    capture_delay: float = 1.0,
-    preview_callback: Optional[callable] = None,
-) -> List[Path]:
+    preview_callback: callable | None = None,
+) -> list[Path]:
     """
     Unified capture function that delegates to appropriate camera module.
+    
+    Note: Both webcam and DSLR capture functions now only support single photos.
+    Multiple captures are handled by the application calling this function
+    multiple times.
     
     Args:
         camera_mode: "webcam" or "dslr"
         device_index: Camera device index (for webcam)
         resolution: Camera resolution (width, height)
-        num_photos: Number of photos to capture
-        output_dir: Directory to save photos
-        capture_delay: Delay between shots in seconds
+        output_dir: Directory to save photo
         preview_callback: Optional callback for live preview (QImage -> None)
     
     Returns:
-        List of captured photo paths
+        List containing single captured photo path
     """
     if camera_mode == "webcam":
         return capture_webcam_photos(
-            device_index, resolution, num_photos, output_dir, capture_delay, preview_callback
+            device_index, resolution, output_dir, preview_callback
         )
     elif camera_mode == "dslr":
         return capture_dslr_photos(
-            device_index, resolution, num_photos, output_dir, capture_delay, preview_callback
+            output_dir
         )
     else:
         raise ValueError(f"Unknown camera mode: {camera_mode}")

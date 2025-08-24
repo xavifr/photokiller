@@ -585,13 +585,20 @@ class MainWindow(QMainWindow):
                     self.config.camera.mode,
                     self.config.camera.device_index,
                     tuple(self.config.camera.resolution),
-                    1,  # Single shot
                     self._session_dir,
-                    0,  # No delay needed
                     self._update_preview,  # Preview callback
                 )
                 if photos:
-                    self._captured_photos.extend(photos)
+                    # Ensure consistent naming for multiple captures
+                    old_path = photos[0]
+                    new_path = self._session_dir / f"shot_{current_shot + 1}.jpg"
+                    if old_path != new_path:
+                        old_path.rename(new_path)
+                        self._captured_photos.append(new_path)
+                        print(f"Captured shot {current_shot + 1}: {new_path}")
+                    else:
+                        self._captured_photos.append(old_path)
+                        print(f"Captured shot {current_shot + 1}: {old_path}")
         else:
             # DSLR capture using unified interface
             print(f"Using DSLR capture for shot {current_shot + 1}...")
@@ -599,14 +606,20 @@ class MainWindow(QMainWindow):
                 self.config.camera.mode,
                 self.config.camera.device_index,
                 tuple(self.config.camera.resolution),
-                1,  # Single shot
                 self._session_dir,
-                0,  # No delay needed
                 None,  # DSLR doesn't support preview
             )
             if photos:
-                self._captured_photos.extend(photos)
-                print(f"DSLR captured shot {current_shot + 1}: {photos[0]}")
+                # DSLR saves as "shot.jpg", rename to "shot_X.jpg" for proper sequencing
+                old_path = photos[0]
+                new_path = self._session_dir / f"shot_{current_shot + 1}.jpg"
+                if old_path != new_path:
+                    old_path.rename(new_path)
+                    self._captured_photos.append(new_path)
+                    print(f"DSLR captured shot {current_shot + 1}: {new_path}")
+                else:
+                    self._captured_photos.append(old_path)
+                    print(f"DSLR captured shot {current_shot + 1}: {old_path}")
             else:
                 print(f"DSLR failed to capture shot {current_shot + 1}")
 
@@ -648,15 +661,15 @@ class MainWindow(QMainWindow):
             base_mask_path = Path(self.config.layout.base_mask)
             if not base_mask_path.is_absolute():
                 base_mask_path = Path.cwd() / base_mask_path
+            print(f"Base mask path resolved to: {base_mask_path}")
+
                 
         if self.config.layout.background_mask:
             background_mask_path = Path(self.config.layout.background_mask)
             if not background_mask_path.is_absolute():
                 background_mask_path = Path.cwd() / background_mask_path
             print(f"Background mask path resolved to: {background_mask_path}")
-            print(f"Background mask file exists: {background_mask_path.exists()}")
-        else:
-            print("No background_mask configured in config")
+
                 
         composed = compose_10x15_strip(self._captured_photos, self._session_dir / "print.jpg", base_mask_path, background_mask_path)
         print(f"Composed layout: {composed}")
