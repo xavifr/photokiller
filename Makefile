@@ -19,8 +19,21 @@ build-spec: install-deps
 clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf build/ dist/ *.spec
+	rm -rf .venv/ venv/ env/
+	rm -rf photokiller.egg-info/
+	rm -rf .pytest_cache/
+	rm -rf .coverage
 	find . -name "*.pyc" -delete
 	find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+	rm -rf .uv/
+	rm -rf .cache/
+	rm -rf .mypy_cache/
+	rm -rf .ruff_cache/
+# Clean everything including sessions
+clean-all: clean
+	@echo "Cleaning sessions and all temporary files..."
+	rm -rf sessions/
+
 
 # Install dependencies
 install-deps:
@@ -38,7 +51,8 @@ help:
 	@echo "  build      - Build AppImage using build script"
 	@echo "  build-raspberry-pi - Build AppImage for Raspberry Pi (ARMv7)"
 	@echo "  build-spec - Build using PyInstaller spec file"
-	@echo "  clean      - Clean build artifacts"
+	@echo "  clean      - Clean build artifacts, virtual envs, and cache files"
+	@echo "  clean-all  - Clean everything including sessions and all temp files"
 	@echo "  install-deps - Install build dependencies"
 	@echo "  run        - Run app in development mode"
 	@echo "  help       - Show this help message"

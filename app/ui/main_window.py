@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..config import AppConfig
-from .preview_widget import PreviewWidget, CameraThread
+from .preview_widget import PreviewWidget, CameraPreview
 
 # Import capture modules conditionally
 from ..capture import capture_photos
@@ -461,7 +461,7 @@ class MainWindow(QMainWindow):
         # Camera thread for preview (only if preview is enabled)
         self.camera_thread = None
         if not config.camera.skip_preview:
-            self.camera_thread = CameraThread(config.camera.device_index, config.camera.resolution)
+            self.camera_thread = CameraPreview(self.config)
             self.camera_thread.frame_ready.connect(self._on_camera_frame)
             self.camera_thread.error_occurred.connect(self._on_camera_error)
             self.camera_thread.start()
@@ -642,11 +642,23 @@ class MainWindow(QMainWindow):
         
         # Compose the final layout into the session directory
         base_mask_path = None
+        background_mask_path = None
+        
         if self.config.layout.base_mask:
             base_mask_path = Path(self.config.layout.base_mask)
             if not base_mask_path.is_absolute():
                 base_mask_path = Path.cwd() / base_mask_path
-        composed = compose_10x15_strip(self._captured_photos, self._session_dir / "print.jpg", base_mask_path)
+                
+        if self.config.layout.background_mask:
+            background_mask_path = Path(self.config.layout.background_mask)
+            if not background_mask_path.is_absolute():
+                background_mask_path = Path.cwd() / background_mask_path
+            print(f"Background mask path resolved to: {background_mask_path}")
+            print(f"Background mask file exists: {background_mask_path.exists()}")
+        else:
+            print("No background_mask configured in config")
+                
+        composed = compose_10x15_strip(self._captured_photos, self._session_dir / "print.jpg", base_mask_path, background_mask_path)
         print(f"Composed layout: {composed}")
         
         # Store the composed photo path and show review

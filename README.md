@@ -59,14 +59,16 @@ Photokiller is a streamlined alternative to pibooth, built with modern dependenc
 
 ### **Dual Camera Support**
 - **Webcam Mode**: Live preview, real-time capture, OpenCV-based
-- **DSLR Mode**: No preview (configurable), gphoto2 capture, professional quality
+- **DSLR Mode**: Live preview support (configurable), gphoto2 capture, professional quality
 - **Skip Preview Option**: `camera.skip_preview` for DSLRs without live view
+- **DSLR Preview**: Uses gphoto2 `--capture-preview` for live preview when available
 
 ### **Unified Capture Architecture**
 - **Consistent Interface**: Both webcam and DSLR use identical function signatures
 - **Dependency Injection**: Preview callback passed to capture functions
 - **Modular Design**: Camera modules handle their own preview logic
 - **Easy Extension**: Add new camera types by implementing the same interface
+- **Clean Separation**: Preview logic separate from capture logic
 
 ### **Capture Strategy**
 - **Webcam**: Uses existing camera thread, captures current frame with preview callback
@@ -86,6 +88,7 @@ Photokiller is a streamlined alternative to pibooth, built with modern dependenc
 - **3-Photo Strip**: Vertical arrangement with equal spacing
 - **Dimensions**: 1200x1800px (300 DPI equivalent)
 - **Composition**: Automatic scaling while maintaining aspect ratio
+- **Base Mask Support**: Apply overlay images (logos, borders) to final compositions
 
 ### **Printing System**
 - **CUPS Integration**: Native Linux printing support
@@ -107,12 +110,16 @@ Photokiller is a streamlined alternative to pibooth, built with modern dependenc
   "camera": {
     "mode": "webcam" | "dslr",
     "skip_preview": false,
-    "resolution": [1280, 720]
+    "resolution": [1280, 720],
+    "dslr_preview_interval": 1.0
   },
   "session": {
     "shots": 1 | 3,
     "countdown_seconds": 3,
-    "capture_delay": 1.0
+    "capture_delay": 3.0
+  },
+  "layout": {
+    "base_mask": "mask.png"
   },
   "printing": {
     "enabled": true,
@@ -129,9 +136,11 @@ Photokiller is a streamlined alternative to pibooth, built with modern dependenc
 ```
 
 **New Features:**
-- **`capture_delay`**: Configurable delay between multiple shots (default: 1.0 seconds)
+- **`capture_delay`**: Configurable delay between multiple shots (default: 3.0 seconds)
+- **`dslr_preview_interval`**: How often DSLR preview updates (default: 1.0 seconds)
+- **`base_mask`**: Path to overlay image applied to final compositions
 - **Integrated Preview**: Camera preview appears in countdown view for better positioning
-- **Distinct Preview Background**: Dark blue background with white border for clear image boundaries
+- **Distinct Preview Background**: Dark background with white border for clear image boundaries
 
 ## 🔧 **Development & Build Decisions**
 
@@ -146,7 +155,8 @@ photokiller/
 │   └── utils/             # Helper functions
 ├── config/                 # Configuration files
 ├── main.py                 # Entry point for PyInstaller
-└── build_appimage.py       # Build automation
+├── build_appimage.py       # Build automation
+└── .dockerignore           # Docker build optimization
 ```
 
 ### **Build System**
@@ -154,6 +164,7 @@ photokiller/
 - **One-File Mode**: Single binary for easy distribution
 - **Data Inclusion**: Config directory bundled with executable
 - **Cross-Platform**: Ready for Linux AppImage creation
+- **Docker Cross-Compilation**: ARMv7 builds on x86_64 hosts
 
 ### **Dependency Management**
 - **uv**: Fast Python package manager
@@ -173,6 +184,19 @@ photokiller/
 - **Standalone Binary**: No Python installation required
 - **Config Bundling**: Settings included in executable
 - **Portable**: Works on any compatible Linux system
+- **Cross-Compilation**: Build ARM binaries on x86_64 development machines
+
+### **Build Options**
+```bash
+# Local build (same architecture)
+make build
+
+# Raspberry Pi ARMv7 build (cross-compilation)
+make build-raspberry-pi
+
+# Direct build script
+python build_appimage.py --raspberry-pi
+```
 
 ## 🎮 **User Experience Decisions**
 
@@ -223,9 +247,17 @@ python -m app
 # Build standalone executable
 python build_appimage.py
 
+# Build for Raspberry Pi (ARMv7)
+python build_appimage.py --raspberry-pi
+
 # Run the binary
 ./dist/photokiller
 ```
+
+### **Cross-Compilation Requirements**
+- **Docker**: Required for ARM builds on x86_64
+- **QEMU**: Automatic installation for ARM emulation
+- **Build Time**: 10-30 minutes for ARM builds
 
 ## 🎯 **Design Philosophy**
 
@@ -235,5 +267,7 @@ Photokiller follows these core principles:
 3. **Performance**: Optimized for Raspberry Pi hardware
 4. **Professional**: Clean, modern interface suitable for events
 5. **Maintainable**: Clear code structure and minimal dependencies
+6. **Flexible**: Support for both webcam and DSLR workflows
+7. **Extensible**: Easy to add new features and camera types
 
 This project represents a focused approach to photobooth software - removing complexity while maintaining professional quality and reliability.

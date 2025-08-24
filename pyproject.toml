@@ -2,12 +2,13 @@
 name = "photokiller"
 version = "0.1.0"
 description = "Lean photobooth app for Raspberry Pi with DSLR support, CUPS printing, and PySide6 UI"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
   { name = "Photokiller" }
 ]
 dependencies = [
-  "PySide6>=6.6",
+  "PySide6>=6.5,<6.6",
+  "numpy>=1.24,<2.0",
   "Pillow>=10.3",
   "pydantic>=2.7",
   "pycups>=2.0.1",

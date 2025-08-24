@@ -12,6 +12,7 @@ class CameraConfig(BaseModel):
     device_index: int = 0
     skip_preview: bool = False
     resolution: tuple[int, int] = (1280, 720)
+    dslr_preview_interval: float = 1.0  # Seconds between DSLR preview captures
 
 
 class SessionConfig(BaseModel):
@@ -30,6 +31,7 @@ class PrintConfig(BaseModel):
 
 class LayoutConfig(BaseModel):
     base_mask: str = ""
+    background_mask: str = ""
 
 
 class GpioConfig(BaseModel):
