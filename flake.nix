@@ -55,12 +55,6 @@
           xorg.xcbutilrenderutil
           xorg.xcbutilwm
           
-          # Qt6 dependencies
-          qt6.qtbase
-          qt6.qtdeclarative
-          qt6.qtmultimedia
-          qt6.qtwayland
-          
           # Camera support
           gphoto2
           libgphoto2
@@ -71,6 +65,9 @@
           libpng
           libtiff
           libwebp
+          zlib
+          zstd
+          brotli
           
           # Audio support (for Qt multimedia)
           alsa-lib
@@ -82,6 +79,9 @@
           
           # SSL/TLS support
           openssl
+          krb5
+          libproxy
+          (stdenv.cc.cc.lib)
           
           # Other system libraries
           glib
@@ -111,27 +111,26 @@
         devShells.default = pkgs.mkShell {
           buildInputs = [
             pythonEnv
-            runtimeEnv
             pkgs.uv
-          ];
+          ] ++ systemDeps;
           
           shellHook = ''
             echo "Photokiller development environment loaded!"
             echo "Python: $(python --version)"
             echo "CUPS: $(cups-config --version 2>/dev/null || echo 'Not available')"
-            echo "OpenGL: $(glxinfo | grep 'OpenGL version' | head -1 || echo 'Not available')"
             
-            # Set environment variables for runtime
+            # Expose non-Qt system libraries for PySide6's bundled Qt to link against
             export LD_LIBRARY_PATH="${runtimeEnv}/lib:$LD_LIBRARY_PATH"
             export PKG_CONFIG_PATH="${runtimeEnv}/lib/pkgconfig:$PKG_CONFIG_PATH"
-            export QT_PLUGIN_PATH="${runtimeEnv}/lib/qt6/plugins"
-            export QT_QPA_PLATFORM_PLUGIN_PATH="${runtimeEnv}/lib/qt6/plugins/platforms"
-            
-            # CUPS environment
-            export CUPS_DATADIR="${runtimeEnv}/share/cups"
-            export CUPS_FILTERDIR="${runtimeEnv}/lib/cups/filter"
-            
-            echo "Environment variables set for runtime dependencies"
+
+            # Prefer PySide6-bundled Qt libraries and plugins if .venv exists
+            VENV_DIR="$PWD/.venv"
+            PYSIDE6_DIR="$VENV_DIR/lib/python3.11/site-packages/PySide6"
+            if [ -d "$PYSIDE6_DIR" ]; then
+              export LD_LIBRARY_PATH="$PYSIDE6_DIR:$PYSIDE6_DIR/Qt/lib:$LD_LIBRARY_PATH"
+              export QT_PLUGIN_PATH="$PYSIDE6_DIR/Qt/plugins"
+              export QT_QPA_PLATFORM_PLUGIN_PATH="$PYSIDE6_DIR/Qt/plugins/platforms"
+            fi
           '';
         };
         

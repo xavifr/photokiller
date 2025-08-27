@@ -52,6 +52,7 @@ def build_local():
         "--name=photokiller",
         "--onefile",
         "--windowed",  # No console window on Linux
+        "--additional-hooks-dir=hooks",
         "--add-data=config:config",  # Include config directory
         "--icon=assets/icon.png" if (Path.cwd() / "assets/icon.png").exists() else "",
         "main.py"  # Use the root-level entry point
