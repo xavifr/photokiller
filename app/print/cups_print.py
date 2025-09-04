@@ -12,15 +12,11 @@ def print_file_cups(image_path: Path, printer_name: str, copies: int = 1, paper_
         raise RuntimeError(f"Printer '{printer_name}' not found. Available: {', '.join(printers.keys())}")
     target = printer_name or list(printers.keys())[0]
     
-    # CUPS print options for photo paper
+    # CUPS print options - optimized for photo printing
     print_options = {
         "copies": str(copies),
-        "fit-to-page": "true",  # Fit image to page
-        "scaling": "100",  # 100% scaling
-        "position": "center",  # Center the image
-        "print-quality": "4",  # High quality (4 = 300 DPI)
-        "print-color-mode": "color",  # Color printing
-        "print-scaling": "fit",  # Fit to page
+        "fit-to-page": "true",  # Ensure image fits within page bounds
+        "print-scaling": "fit",  # Scale to fit page
     }
     
     # Only add media option if paper_name is specified
