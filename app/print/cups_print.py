@@ -14,11 +14,10 @@ def print_file_cups(image_path: Path, printer_name: str, copies: int = 1, paper_
     
     # CUPS print options for photo paper
     print_options = {
-        "copies": copies,
+        "copies": str(copies),
         "fit-to-page": "true",  # Fit image to page
         "scaling": "100",  # 100% scaling
         "position": "center",  # Center the image
-        "orientation-requested": "portrait",  # Portrait orientation
         "print-quality": "4",  # High quality (4 = 300 DPI)
         "print-color-mode": "color",  # Color printing
         "print-scaling": "fit",  # Fit to page
