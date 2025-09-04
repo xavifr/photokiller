@@ -26,7 +26,7 @@ class PrintConfig(BaseModel):
     enabled: bool = True
     printer_name: str = ""
     copies: int = 1
-    paper_size_mm: tuple[int, int] = (100, 150)
+    paper_name: str | None = None
 
 
 class LayoutConfig(BaseModel):

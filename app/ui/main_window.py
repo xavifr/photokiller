@@ -714,7 +714,7 @@ class MainWindow(QMainWindow):
         # Disable buttons during countdown
         self.take_one_btn.setEnabled(False)
         self.take_three_btn.setEnabled(False)
-        self.reprint_btn.setEnabled(False)  # Disable re-print during new capture session
+        self.reprint_btn.setEnabled(False)  # Disable re-print during capture
         
         # Store session info for multi-capture
         self._pending_session = num_shots
@@ -723,9 +723,6 @@ class MainWindow(QMainWindow):
         # Create one session directory to hold all shots and the composed print
         self._session_dir = make_session_dir(self.config.session.save_dir)
         
-        # Clear previous photo reference when starting new session
-        self.last_composed_photo = None
-
         self.countdown_timer.start(1000)  # Update every second
         self._update_countdown()
 
@@ -891,9 +888,6 @@ class MainWindow(QMainWindow):
         
         # Enable re-print button since we have a photo to review
         self.reprint_btn.setEnabled(True)
-        
-        # Inform user that re-printing is available
-        self.statusBar().showMessage("Photo ready for printing or re-printing", 5000)
 
     def _show_error_review(self, error_message: str) -> None:
         """Show review screen with error message instead of photo"""
@@ -906,7 +900,7 @@ class MainWindow(QMainWindow):
         self.take_one_btn.setEnabled(True)
         self.take_three_btn.setEnabled(True)
         
-        # Disable re-print button since there's no valid photo to re-print
+        # Disable re-print button since there's no photo to re-print
         self.reprint_btn.setEnabled(False)
 
     def _discard_photo(self) -> None:
@@ -923,12 +917,6 @@ class MainWindow(QMainWindow):
         
         # Re-print button remains enabled since photo is still available for re-printing
 
-    def _clear_photo_session(self) -> None:
-        """Clear the current photo session and disable re-print button"""
-        self.last_composed_photo = None
-        self.reprint_btn.setEnabled(False)
-        self.statusBar().showMessage("Photo session cleared", 3000)
-
     def _print_photo(self) -> None:
         """Print the photo"""
         if not self.last_composed_photo:
@@ -941,7 +929,7 @@ class MainWindow(QMainWindow):
             
         try:
             self.statusBar().showMessage("Printing...")
-            print_file_cups(self.last_composed_photo, self.config.printing.printer_name, self.config.printing.copies)
+            print_file_cups(self.last_composed_photo, self.config.printing.printer_name, self.config.printing.copies, self.config.printing.paper_name)
             self.statusBar().showMessage("Photo printed successfully!", 5000)
             print(f"Printed: {self.last_composed_photo}")
         except Exception as exc:
@@ -967,8 +955,8 @@ class MainWindow(QMainWindow):
             return
             
         try:
-            self.statusBar().showMessage(f"Re-printing photo: {Path(self.last_composed_photo).name}...")
-            print_file_cups(self.last_composed_photo, self.config.printing.printer_name, self.config.printing.copies)
+            self.statusBar().showMessage("Re-printing...")
+            print_file_cups(self.last_composed_photo, self.config.printing.printer_name, self.config.printing.copies, self.config.printing.paper_name)
             self.statusBar().showMessage("Photo re-printed successfully!", 5000)
             print(f"Re-printed: {self.last_composed_photo}")
         except Exception as exc:
@@ -1051,10 +1039,6 @@ class MainWindow(QMainWindow):
                 self.showNormal()
             else:
                 self.showFullScreen()
-            return
-        elif event.key() == Qt.Key_D and event.modifiers() == Qt.ControlModifier:
-            # Clear photo session (Ctrl+D)
-            self._clear_photo_session()
             return
         super().keyPressEvent(event)
 

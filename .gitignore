@@ -250,3 +250,4 @@ photokiller.AppImage
 .env.test
 .env.production
 Dockerfile.arm
+result
