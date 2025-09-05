@@ -929,7 +929,7 @@ class MainWindow(QMainWindow):
             
         try:
             self.statusBar().showMessage("Printing...")
-            print_file_cups(self.last_composed_photo, self.config.printing.printer_name, self.config.printing.copies, self.config.printing.paper_name)
+            print_file_cups(self.last_composed_photo, self.config.printing.printer_name, self.config.printing.copies, self.config.printing.custom_options)
             self.statusBar().showMessage("Photo printed successfully!", 5000)
             print(f"Printed: {self.last_composed_photo}")
         except Exception as exc:
@@ -956,7 +956,7 @@ class MainWindow(QMainWindow):
             
         try:
             self.statusBar().showMessage("Re-printing...")
-            print_file_cups(self.last_composed_photo, self.config.printing.printer_name, self.config.printing.copies, self.config.printing.paper_name)
+            print_file_cups(self.last_composed_photo, self.config.printing.printer_name, self.config.printing.copies, self.config.printing.custom_options)
             self.statusBar().showMessage("Photo re-printed successfully!", 5000)
             print(f"Re-printed: {self.last_composed_photo}")
         except Exception as exc:

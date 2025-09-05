@@ -26,7 +26,8 @@ class PrintConfig(BaseModel):
     enabled: bool = True
     printer_name: str = ""
     copies: int = 1
-    paper_name: str | None = None
+    custom_options: dict[str, str] = Field(default_factory=lambda: {
+    })
 
 
 class LayoutConfig(BaseModel):
